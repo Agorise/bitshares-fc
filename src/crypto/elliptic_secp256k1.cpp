@@ -551,5 +551,49 @@ namespace fc { namespace ecc {
         return result;
      }
 
+     // Create surjection proof
+     out_witness surject_output(const std::vector<fixed_asset_tag>& surjection_targets,
+                                const std::vector<asset_generator>& target_asset_generators,
+                                const std::vector<blind_factor_type >& target_asset_blinders,
+                                const std::vector<range_proof_type> assetblinds,
+                                const asset_generator& gen,
+                                const sha256& asset)
+     {
+         int ret;
+         size_t nInputsToSelect = std::min((size_t)3, surjection_targets.size());
+         unsigned char randseed[32] = {0};
+         size_t input_index;
+         secp256k1_surjectionproof proof;
+         secp256k1_fixed_asset_tag tag;
+         memcpy(&tag, asset.begin(), 32);
+         if (secp256k1_surjectionproof_initialize(secp256k1_blind_context, &proof,
+                                                  &input_index, &surjection_targets[0],
+                                                  surjection_targets.size(),
+                                                  nInputsToSelect, &tag, 100, randseed)
+                 == 0) {
+             return false;
+         }
+         ret = secp256k1_surjectionproof_generate(secp256k1_blind_context, &proof,
+                                                  &target_asset_generators[0],
+                 target_asset_generators.size(), &gen, input_index,
+                 target_asset_blinders[input_index].begin(),
+                 assetblinds[assetblinds.size()-1]);
+         assert(ret == 1);
+         ret = secp256k1_surjectionproof_verify(secp256k1_blind_context, &proof,
+                                                &target_asset_generators[0],
+                 target_asset_generators.size(), &gen);
+         assert(ret != 0);
+
+         size_t output_len = secp256k1_surjectionproof_serialized_size(
+                     secp256k1_blind_context, &proof);
+         out_witness outwit;
+         outwit.vchSurjectionproof.resize(output_len);
+         secp256k1_surjectionproof_serialize(secp256k1_blind_context,
+                                             &outwit.surjectionproof[0],
+                 &output_len, &proof);
+         assert(output_len == outwit.surjectionproof.size());
+         return outwit;
+     }
+
 
 } }

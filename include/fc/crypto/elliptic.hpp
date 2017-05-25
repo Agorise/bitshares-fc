@@ -201,7 +201,6 @@ namespace fc {
             compact_signature unblind_signature( const extended_public_key& bob,
                                                  const blind_signature& sig,
                                                  const fc::sha256& hash, int i ) const;
-
         private:
             extended_private_key private_derive_rest( const fc::sha512& hash,
                                                       int num ) const;
@@ -218,8 +217,8 @@ namespace fc {
 
      struct range_proof_info
      {
-         int64_t      exp;
-         int64_t      mantissa;
+         int          exp;
+         int          mantissa;
          uint64_t     min_value;
          uint64_t     max_value;
      };
@@ -249,7 +248,20 @@ namespace fc {
                                           const range_proof_type& proof );
      range_proof_info range_get_info( const range_proof_type& proof );
 
+     // Confidential Asset blinding utils
+     // see https://blockstream.com/bitcoin17-final41.pdf
+     struct out_witness
+     {
+         std::vector<range_proof_type> surjectionproofs;
+         std::vector<range_proof_type> rangeproofs;
+     };
 
+     out_witness surject_output(const std::vector<secp256k1_fixed_asset_tag>& input_assets,
+                                const std::vector<secp256k1_generator>& input_asset_generators,
+                                const std::vector<blind_factor_type >& input_asset_blinding_factors,
+                                const std::vector<range_proof_type> assetblinds,
+                                const secp256k1_generator& gen,
+                                const uint256_t& asset);
 
   } // namespace ecc
   void to_variant( const ecc::private_key& var,  variant& vo );
